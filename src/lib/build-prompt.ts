@@ -13,6 +13,8 @@ export type PersonScoringRecord = {
   city?: string;
   email?: string;
   linkedinUrl?: string;
+  companyDomain?: string;
+  recentActivity?: string[];
 };
 
 export type OpportunityScoringRecord = {
@@ -21,6 +23,8 @@ export type OpportunityScoringRecord = {
   stage?: string;
   closeDate?: string;
   company?: string;
+  companyDomain?: string;
+  recentActivity?: string[];
 };
 
 const line = (label: string, value: unknown): string | null => {
@@ -30,6 +34,11 @@ const line = (label: string, value: unknown): string | null => {
 
   return `- ${label}: ${value}`;
 };
+
+const activityLine = (activity: string[] | undefined): string | null =>
+  activity && activity.length > 0
+    ? line('Recent activity', activity.join('; '))
+    : null;
 
 const buildPrompt = (
   recordType: string,
@@ -56,9 +65,11 @@ export const buildPersonScoringPrompt = (
     line('Name', record.name),
     line('Job title', record.jobTitle),
     line('Company', record.company),
+    line('Company domain', record.companyDomain),
     line('City', record.city),
     line('Email', record.email),
     line('LinkedIn', record.linkedinUrl),
+    activityLine(record.recentActivity),
   ]);
 
 export const buildOpportunityScoringPrompt = (
@@ -70,4 +81,6 @@ export const buildOpportunityScoringPrompt = (
     line('Stage', record.stage),
     line('Close date', record.closeDate),
     line('Company', record.company),
+    line('Company domain', record.companyDomain),
+    activityLine(record.recentActivity),
   ]);
