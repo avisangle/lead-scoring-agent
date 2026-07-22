@@ -1,0 +1,68 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { backfillUnscored } from 'src/lib/backfill';
+
+const { query, mutation } = vi.hoisted(() => ({
+  query: vi.fn(),
+  mutation: vi.fn(),
+}));
+
+vi.mock('twenty-client-sdk/core', () => ({
+  CoreApiClient: class {
+    query = query;
+    mutation = mutation;
+  },
+}));
+
+beforeEach(() => {
+  query.mockReset();
+  mutation.mockReset().mockResolvedValue({});
+});
+
+describe('backfillUnscored', () => {
+  it('queries null-status records and enqueues each as QUEUED', async () => {
+    query
+      .mockResolvedValueOnce({
+        people: { edges: [{ node: { id: 'p1' } }, { node: { id: 'p2' } }] },
+      })
+      .mockResolvedValueOnce({
+        opportunities: { edges: [{ node: { id: 'o1' } }] },
+      });
+
+    const result = await backfillUnscored();
+
+    // Both queues fetched, filtered on IS NULL, capped at 50.
+    expect(query).toHaveBeenCalledTimes(2);
+    const peopleArgs = query.mock.calls[0][0].people.__args;
+    expect(peopleArgs.filter).toEqual({ leadScoreStatus: { is: 'NULL' } });
+    expect(peopleArgs.first).toBe(50);
+
+    // Each unscored record enqueued as QUEUED (2 people + 1 opportunity).
+    expect(mutation).toHaveBeenCalledTimes(3);
+    expect(mutation).toHaveBeenCalledWith({
+      updatePerson: {
+        __args: { id: 'p1', data: { leadScoreStatus: 'QUEUED' } },
+        id: true,
+      },
+    });
+    expect(mutation).toHaveBeenCalledWith({
+      updateOpportunity: {
+        __args: { id: 'o1', data: { leadScoreStatus: 'QUEUED' } },
+        id: true,
+      },
+    });
+
+    expect(result).toEqual({ people: 2, opportunities: 1, total: 3 });
+  });
+
+  it('is a no-op when nothing is unscored', async () => {
+    query
+      .mockResolvedValueOnce({ people: { edges: [] } })
+      .mockResolvedValueOnce({ opportunities: { edges: [] } });
+
+    const result = await backfillUnscored();
+
+    expect(mutation).not.toHaveBeenCalled();
+    expect(result).toEqual({ people: 0, opportunities: 0, total: 0 });
+  });
+});
