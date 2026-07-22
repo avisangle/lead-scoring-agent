@@ -3,17 +3,24 @@
  *
  * The scoring pipeline only fires on database events (create/update), so
  * records that existed before the app was installed never get a score. This
- * helper finds people + opportunities whose `leadScoreStatus` is still null
- * (never touched by the pipeline) and enqueues them by writing status QUEUED.
- * The existing `drainQueue` cron then scores each queued record via the shared
- * `scoreRecord` pipeline.
+ * helper finds people + opportunities that still need scoring — never-scored
+ * (null status) OR previously-FAILED (TCA-13) — and enqueues them by writing
+ * status QUEUED. The existing `drainQueue` cron then scores each queued record
+ * via the shared `scoreRecord` pipeline.
  *
  * Enqueue (vs. inline scoring) is deliberate: scoring runs an AI agent per
  * record and a full backfill could exceed a single logic-function timeout.
  * Marking QUEUED is a cheap bounded write; the cron drains in capped batches.
  *
- * Idempotent: only null-status records are selected, so re-running never
- * re-queues records that are already QUEUED / SCORED / SKIPPED / FAILED.
+ * Including FAILED lets a failure left by a transient incident (e.g. credit
+ * exhaustion) be re-scored once credits return, without a manual DB edit. Since
+ * credit exhaustion now re-queues itself (see `scoreRecord`), FAILED means a
+ * genuine error; re-queueing here is operator-triggered (not the cron), so a
+ * broken record is retried only on an explicit backfill, not in a tight loop.
+ * A bounded retry-count field remains the proper long-term guard (TCA-10).
+ *
+ * Idempotent: re-running re-queues only records that still need scoring, never
+ * ones already QUEUED / SCORED / SKIPPED.
  */
 import { CoreApiClient } from 'twenty-client-sdk/core';
 
@@ -34,7 +41,12 @@ const fetchUnscoredIds = async (
       people: {
         __args: {
           first: BACKFILL_BATCH_LIMIT,
-          filter: { leadScoreStatus: { is: 'NULL' } },
+          filter: {
+            or: [
+              { leadScoreStatus: { is: 'NULL' } },
+              { leadScoreStatus: { eq: 'FAILED' } },
+            ],
+          },
         },
         edges: { node: { id: true } },
       },
@@ -49,7 +61,12 @@ const fetchUnscoredIds = async (
     opportunities: {
       __args: {
         first: BACKFILL_BATCH_LIMIT,
-        filter: { leadScoreStatus: { is: 'NULL' } },
+        filter: {
+          or: [
+            { leadScoreStatus: { is: 'NULL' } },
+            { leadScoreStatus: { eq: 'FAILED' } },
+          ],
+        },
       },
       edges: { node: { id: true } },
     },

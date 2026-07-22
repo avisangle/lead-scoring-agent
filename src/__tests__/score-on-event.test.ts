@@ -86,12 +86,16 @@ describe('handleScoreOnEvent — inline scoring', () => {
     expect(typeof data.leadScoredAt).toBe('string');
   });
 
-  it('sets FAILED when the agent run is unsuccessful', async () => {
+  it('sets FAILED and captures the reason when the agent run is unsuccessful', async () => {
     runAgent.mockResolvedValue({ success: false, error: 'boom', result: null });
 
     await handleScoreOnEvent('opportunity', event({ stage: 'PROPOSAL' }));
 
     expect(runAgent).toHaveBeenCalledTimes(1);
-    expect(writtenData(0)).toEqual({ leadScoreStatus: 'FAILED' });
+    // TCA-13: the failure reason is captured (no longer swallowed).
+    expect(writtenData(0)).toEqual({
+      leadScoreStatus: 'FAILED',
+      leadScoreSummary: 'boom',
+    });
   });
 });
