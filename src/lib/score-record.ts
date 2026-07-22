@@ -66,9 +66,54 @@ const buildPromptFor = (
     : buildOpportunityScoringPrompt(record as OpportunityScoringRecord);
 
 /**
+ * Transient credit/quota exhaustion — retry when credits return, never fail
+ * terminally. Matches the message the SDK throws on quota errors, e.g.
+ * `Error("runAgent() failed: Credits exhausted")`; string-matching is the only
+ * signal available since `RunAgentResult` exposes only `error: string | null`.
+ */
+const CREDIT_EXHAUSTION_PATTERN = /credits?\s+exhausted/i;
+
+const reasonFrom = (source: unknown): string => {
+  const message =
+    source instanceof Error ? source.message : String(source ?? '');
+
+  return message.trim() || 'Unknown scoring error';
+};
+
+/**
+ * Persist a non-success outcome without swallowing it (TCA-13). Credit
+ * exhaustion is transient, so the record goes back to QUEUED to be re-scored
+ * once credits return; any other error is terminal FAILED with the reason
+ * captured in `leadScoreSummary` (and logged) so a failed record is
+ * self-explaining.
+ */
+const recordFailure = async (
+  objectType: ScoreObjectType,
+  recordId: string,
+  source: unknown,
+): Promise<LeadScoreStatus> => {
+  const reason = reasonFrom(source);
+  console.error(`scoreRecord ${objectType} ${recordId} failed: ${reason}`);
+
+  if (CREDIT_EXHAUSTION_PATTERN.test(reason)) {
+    await setLeadScoreStatus(objectType, recordId, 'QUEUED');
+    return 'QUEUED';
+  }
+
+  await writeLeadScoreFields(objectType, recordId, {
+    leadScoreStatus: 'FAILED',
+    leadScoreSummary: reason,
+  });
+
+  return 'FAILED';
+};
+
+/**
  * Enrich, score via the agent, and persist the result.
- * Writes SCORED (with score + summary + timestamp) on success, FAILED on any
- * error or unsuccessful agent run. Returns the terminal status.
+ * Writes SCORED (with score + summary + timestamp) on success. On failure the
+ * outcome is captured (never swallowed): credit exhaustion re-queues as QUEUED,
+ * any other error is terminal FAILED with the reason in `leadScoreSummary`.
+ * Returns the resulting status.
  */
 export const scoreRecord = async (
   objectType: ScoreObjectType,
@@ -78,7 +123,7 @@ export const scoreRecord = async (
     const record = await enrichRecord({ objectType, recordId });
     const prompt = buildPromptFor(objectType, record);
 
-    const { result, success } = await runAgent({
+    const { result, error, success } = await runAgent({
       agentUniversalIdentifier: LEAD_SCORER_AGENT_UNIVERSAL_IDENTIFIER,
       prompt,
     });
@@ -86,8 +131,7 @@ export const scoreRecord = async (
     const parsed = result as { score?: number; summary?: string } | null;
 
     if (!success || !parsed || typeof parsed.score !== 'number') {
-      await setLeadScoreStatus(objectType, recordId, 'FAILED');
-      return 'FAILED';
+      return recordFailure(objectType, recordId, error ?? 'Agent returned no score');
     }
 
     await writeLeadScoreFields(objectType, recordId, {
@@ -98,8 +142,7 @@ export const scoreRecord = async (
     });
 
     return 'SCORED';
-  } catch {
-    await setLeadScoreStatus(objectType, recordId, 'FAILED');
-    return 'FAILED';
+  } catch (error) {
+    return recordFailure(objectType, recordId, error);
   }
 };
