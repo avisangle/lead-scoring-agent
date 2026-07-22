@@ -65,16 +65,17 @@ const buildPromptFor = (
     ? buildPersonScoringPrompt(record as PersonScoringRecord)
     : buildOpportunityScoringPrompt(record as OpportunityScoringRecord);
 
-/** Transient credit/quota exhaustion — retry when credits return, never fail terminally. */
+/**
+ * Transient credit/quota exhaustion — retry when credits return, never fail
+ * terminally. Matches the message the SDK throws on quota errors, e.g.
+ * `Error("runAgent() failed: Credits exhausted")`; string-matching is the only
+ * signal available since `RunAgentResult` exposes only `error: string | null`.
+ */
 const CREDIT_EXHAUSTION_PATTERN = /credits?\s+exhausted/i;
 
 const reasonFrom = (source: unknown): string => {
   const message =
-    source instanceof Error
-      ? source.message
-      : typeof source === 'string'
-        ? source
-        : String(source ?? '');
+    source instanceof Error ? source.message : String(source ?? '');
 
   return message.trim() || 'Unknown scoring error';
 };
