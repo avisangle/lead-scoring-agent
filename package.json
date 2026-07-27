@@ -2,12 +2,20 @@
   "name": "lead-scoring-agent",
   "version": "0.1.0",
   "license": "MIT",
+  "description": "AI lead scoring & enrichment agent for Twenty CRM — auto-scores People and Opportunities 0-100 with reasoning, on create/update and via backfill.",
+  "author": "Avinash Sangle (https://github.com/avisangle)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/avisangle/lead-scoring-agent.git"
+  },
+  "homepage": "https://github.com/avisangle/lead-scoring-agent#readme",
+  "bugs": "https://github.com/avisangle/lead-scoring-agent/issues",
   "engines": {
     "node": "^24.5.0",
     "npm": "please-use-yarn",
     "yarn": ">=4.0.2"
   },
-  "keywords": [],
+  "keywords": ["twenty-app", "twenty", "crm", "lead-scoring", "ai-agent"],
   "packageManager": "yarn@4.13.0",
   "scripts": {
     "twenty": "twenty",
