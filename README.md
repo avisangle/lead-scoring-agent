@@ -5,7 +5,19 @@ records 0–100 with a short reasoning summary, so a sales rep can work a leads 
 score. Single manual creates score inline (seconds); bulk imports route to a throttled queue
 drained by a cron sweeper (~1 min).
 
-**Status:** scaffolded + synced to `https://lead-scoring.twenty.com` (TCA-2 done). Feature work next.
+**Status:** v1 functional — auto-scores on create/update, backfills existing records, and ships sorted "by Lead Score" views.
+
+## Install
+
+Published to npm and installable into any Twenty CRM workspace.
+
+- **Twenty UI:** Settings → Applications → find **Lead Scoring Agent** → Install.
+  Self-hosted instances: run `yarn twenty dev:catalog-sync` first so npm-published apps appear in the marketplace.
+- **CLI / details:** see the Twenty apps guide at docs.twenty.com/developers/extend/apps.
+
+**Requires AI credits.** Scoring calls your workspace's default AI model — one call per scored record, metered by Twenty AI credits. With no credits available, records are marked queued and score automatically once credits return.
+
+**What it installs:** `leadScore` / `leadScoreSummary` / `leadScoredAt` / `leadScoreStatus` fields on People and Opportunities, the lead-scorer AI agent, the event-driven + cron scoring functions (including a backfill for pre-existing records), and default views sorted by score.
 
 ## Toolchain
 

@@ -22,6 +22,9 @@ generated
 
 .twenty
 
+# agent / worktree artifacts
+.claude/
+
 # production
 /build
 
