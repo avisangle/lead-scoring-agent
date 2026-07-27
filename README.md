@@ -19,42 +19,17 @@ Published to npm and installable into any Twenty CRM workspace.
 
 **What it installs:** `leadScore` / `leadScoreSummary` / `leadScoredAt` / `leadScoreStatus` fields on People and Opportunities, the lead-scorer AI agent, the event-driven + cron scoring functions (including a backfill for pre-existing records), and default views sorted by score.
 
-## Toolchain
+## Development
 
-This app requires **Node ≥24.5** (`.nvmrc` pins 24.5.0) and **Yarn 4** (`packageManager: yarn@4.13.0`, via corepack).
-On this machine Node 24 is Homebrew keg-only — put it on PATH before working here:
-
-```bash
-export PATH="/opt/homebrew/opt/node@24/bin:$PATH"   # or add to ~/.zshrc to make permanent
-```
-
-## Dev commands
+Requires **Node ≥24.5** (`.nvmrc` pins 24.5.0) and **Yarn 4** (`packageManager: yarn@4.13.0`, via corepack). A Node version manager (fnm/nvm) auto-switches from `.nvmrc`.
 
 ```bash
-corepack yarn twenty dev --once   # sync app to the workspace once
+corepack yarn twenty dev --once   # build + sync the app to your workspace once
 corepack yarn twenty dev          # watch mode
-corepack yarn test                # vitest
+corepack yarn test:unit           # unit tests
 corepack yarn typecheck
 ```
 
-## Planning & tracking
+## License
 
-Design/planning lives in the separate `Twenty-CRM` planning repo + Atlassian:
-
-- **PRD:** `Twenty-CRM/docs/prd/lead-scoring-agent.md` (source of truth)
-- **Confluence:** space `SD` → "PRD: AI Lead Scoring & Enrichment Agent" (page 753665)
-- **Jira:** project `TCA` — epic `TCA-1`, stories `TCA-2`…`TCA-10`
-
-| Issue | Work | State |
-|---|---|---|
-| TCA-2 | Scaffold app + pin GA SDK | ✅ done |
-| TCA-3 | `leadScore` fields on person + opportunity | to do |
-| TCA-4 | Lead-scorer agent (flat `{score, summary}` + 2 prompts) | to do |
-| TCA-5 | Default app role granting the AI permission flag | to do |
-| TCA-6 | SPIKE: verify GA SDK API shapes (Q1–Q5) | to do |
-| TCA-7 | Enrichment helper (record + company + activity) | to do |
-| TCA-8 | Default INDEX views sorted by `leadScore` desc | to do |
-| TCA-9 | `scoreOnEvent` databaseEvent fn (filter, burst, loop guard) | to do |
-| TCA-10 | `drainQueue` cron fn (capped drain, failed + retry) | to do |
-
-License: MIT (app code). The Twenty SDK is AGPL-3.0 and bundles into the shipped artifact.
+MIT (app code). The Twenty SDK is AGPL-3.0 and bundles into the shipped artifact.
