@@ -2,6 +2,11 @@
 
 All notable changes to this application are documented in this file.
 
+## 0.2.1
+
+- Fix: install failed on Twenty Cloud plans without custom roles ("Custom roles require the
+  Organization plan"). The app's function role is no longer assignable to members or API keys.
+
 ## 0.2.0
 
 - Upgrade to Twenty SDK 2.54.3 and the standalone `twenty` CLI. Requires a Twenty server 2.49 or later.

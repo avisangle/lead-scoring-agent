@@ -13,5 +13,8 @@ export default defineApplicationRole({
   canUpdateAllObjectRecords: true,
   canSoftDeleteAllObjectRecords: true,
   canDestroyAllObjectRecords: false,
+  // Function-only role: assignable roles count as custom roles (paid plan) on Twenty Cloud.
+  canBeAssignedToUsers: false,
+  canBeAssignedToApiKeys: false,
   permissionFlagUniversalIdentifiers: [SystemPermissionFlag.AI],
 });
