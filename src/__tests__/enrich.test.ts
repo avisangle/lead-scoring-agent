@@ -31,8 +31,8 @@ describe('enrichRecord (person)', () => {
         },
         timelineActivities: {
           edges: [
-            { node: { name: 'note.created' } },
-            { node: { name: 'task.completed' } },
+            { node: { timelineActivityTypeSnapshot: { name: 'noteLinked' } } },
+            { node: { timelineActivityTypeSnapshot: { name: 'recordUpdated' } } },
           ],
         },
       },
@@ -48,6 +48,11 @@ describe('enrichRecord (person)', () => {
     expect(selection.timelineActivities.__args.orderBy).toEqual([
       { createdAt: 'DescNullsLast' },
     ]);
+    // `name` was removed from TimelineActivity; the event name is on the type snapshot.
+    expect(
+      selection.timelineActivities.edges.node.timelineActivityTypeSnapshot,
+    ).toBe(true);
+    expect(selection.timelineActivities.edges.node.name).toBeUndefined();
     expect(selection.__args.filter).toEqual({ id: { eq: 'p1' } });
 
     // Assert field mapping.
@@ -59,7 +64,7 @@ describe('enrichRecord (person)', () => {
       city: 'London',
       email: 'ada@analytical.example',
       linkedinUrl: 'https://linkedin.com/in/ada',
-      recentActivity: ['note.created', 'task.completed'],
+      recentActivity: ['noteLinked', 'recordUpdated'],
     });
   });
 
@@ -88,7 +93,11 @@ describe('enrichRecord (opportunity)', () => {
           annualRevenue: null,
           address: null,
         },
-        timelineActivities: { edges: [{ node: { name: 'meeting.scheduled' } }] },
+        timelineActivities: {
+          edges: [
+            { node: { timelineActivityTypeSnapshot: { name: 'taskLinked' } } },
+          ],
+        },
       },
     });
 
@@ -109,7 +118,7 @@ describe('enrichRecord (opportunity)', () => {
       closeDate: '2026-08-01T00:00:00.000Z',
       company: 'Analytical Engines Inc',
       companyDomain: 'https://analytical.example',
-      recentActivity: ['meeting.scheduled'],
+      recentActivity: ['taskLinked'],
     });
   });
 });

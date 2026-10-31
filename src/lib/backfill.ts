@@ -53,8 +53,8 @@ const fetchUnscoredIds = async (
     });
 
     return (people?.edges ?? [])
-      .map((edge) => edge?.node?.id)
-      .filter((id): id is string => typeof id === 'string');
+      .map((edge: { node?: { id?: unknown } } | null) => edge?.node?.id)
+      .filter((id: unknown): id is string => typeof id === 'string');
   }
 
   const { opportunities } = await client.query({
@@ -73,8 +73,8 @@ const fetchUnscoredIds = async (
   });
 
   return (opportunities?.edges ?? [])
-    .map((edge) => edge?.node?.id)
-    .filter((id): id is string => typeof id === 'string');
+    .map((edge: { node?: { id?: unknown } } | null) => edge?.node?.id)
+    .filter((id: unknown): id is string => typeof id === 'string');
 };
 
 const enqueueAll = async (
