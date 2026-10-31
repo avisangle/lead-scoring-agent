@@ -1,105 +1,120 @@
+import { useCallback, useEffect, useState } from 'react';
+import { RestApiClient } from 'twenty-client-sdk/rest';
 import { defineFrontComponent } from 'twenty-sdk/define';
-import { useState } from 'react';
-import { Avatar } from 'twenty-ui/primitives/data-display';
-import {
-  IconBox,
-  IconHierarchy,
-  IconLayout,
-  IconSettingsAutomation,
-} from 'twenty-ui/icon';
+import { enqueueSnackbar } from 'twenty-sdk/front-component';
+import { getPublicAssetUrl } from 'twenty-sdk/utils';
+import { LightButton, MainButton } from 'twenty-ui/components/input';
+import { IconRefresh, IconSparkles } from 'twenty-ui/icon';
+import { Status } from 'twenty-ui/primitives/data-display';
+import { useTheme } from 'twenty-ui/theme';
 
 import {
   APP_DISPLAY_NAME,
   MAIN_PAGE_FRONT_COMPONENT_UNIVERSAL_IDENTIFIER,
 } from 'src/constants/universal-identifiers';
+import type { BackfillResult } from 'src/lib/backfill';
+import type { ScoreStats, StatusCounts } from 'src/lib/score-stats';
 
-const DOCS_BASE_URL = 'https://docs.twenty.com/developers/extend/apps';
+const ROWS: {
+  key: keyof StatusCounts;
+  label: string;
+  color: 'green' | 'blue' | 'gray' | 'red' | 'orange';
+}[] = [
+  { key: 'scored', label: 'Scored', color: 'green' },
+  { key: 'queued', label: 'Queued', color: 'blue' },
+  { key: 'skipped', label: 'Skipped (no title, company, amount or stage)', color: 'gray' },
+  { key: 'failed', label: 'Failed', color: 'red' },
+  { key: 'unscored', label: 'Not scored yet', color: 'orange' },
+];
 
-const CATEGORIES = [
-  {
-    title: 'Data model',
-    color: '#73D08D',
-    items: [
-      { label: 'CUSTOM OBJECT', href: `${DOCS_BASE_URL}/data/objects` },
-      {
-        label: 'CUSTOM FIELDS',
-        href: `${DOCS_BASE_URL}/data/extending-objects`,
-      },
-    ],
-    rotation: '2.4deg',
-  },
-  {
-    title: 'Logic',
-    color: '#F4D345',
-    items: [
-      {
-        label: 'TOOLS',
-        href: `${DOCS_BASE_URL}/logic/logic-functions`,
-      },
-      {
-        label: 'LOGIC FUNCTION',
-        href: `${DOCS_BASE_URL}/logic/logic-functions`,
-      },
-      {
-        label: 'SKILLS',
-        href: `${DOCS_BASE_URL}/logic/skills-and-agents`,
-      },
-    ],
-    rotation: '0deg',
-  },
-  {
-    title: 'Layout',
-    color: '#C4A2E0',
-    items: [
-      { label: 'VIEWS', href: `${DOCS_BASE_URL}/layout/views` },
-      { label: 'WIDGETS', href: `${DOCS_BASE_URL}/layout/page-layouts` },
-      {
-        label: 'LAYOUT PAGES',
-        href: `${DOCS_BASE_URL}/layout/page-layouts`,
-      },
-      {
-        label: 'COMMANDS',
-        href: `${DOCS_BASE_URL}/layout/command-menu-items`,
-      },
-    ],
-    rotation: '-2.8deg',
-  },
-] as const;
+const StatsCard = ({ title, counts }: { title: string; counts?: StatusCounts }) => {
+  const theme = useTheme();
 
-const ArrowUpRight = ({ color = '#999' }: { color?: string }) => (
-  <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-    <path
-      d="M4.5 3.5H10.5V9.5M10.5 3.5L3.5 10.5"
-      stroke={color}
-      strokeWidth="1.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
-  </svg>
-);
+  return (
+    <div
+      style={{
+        flex: '1 1 260px',
+        border: `1px solid ${theme.border.color.medium}`,
+        borderRadius: theme.border.radius.md,
+        background: theme.background.primary,
+        padding: theme.spacing[4],
+        display: 'flex',
+        flexDirection: 'column',
+        gap: theme.spacing[2],
+      }}
+    >
+      <span
+        style={{
+          fontSize: theme.font.size.md,
+          fontWeight: theme.font.weight.semiBold,
+          color: theme.font.color.primary,
+        }}
+      >
+        {title}
+      </span>
+      {ROWS.map((row) => (
+        <div
+          key={row.key}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: theme.spacing[2],
+          }}
+        >
+          <Status color={row.color}>{row.label}</Status>
+          <span
+            style={{
+              fontSize: theme.font.size.md,
+              fontWeight: theme.font.weight.medium,
+              color: theme.font.color.primary,
+              fontVariantNumeric: 'tabular-nums',
+            }}
+          >
+            {counts ? counts[row.key] : '–'}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
-const CategoryCard = ({
-  title,
-  color,
-  items,
-  rotation,
-}: {
-  title: string;
-  color: string;
-  items: ReadonlyArray<{ label: string; href: string }>;
-  rotation: string;
-}) => {
-  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+const MainPage = () => {
+  const theme = useTheme();
+  const [stats, setStats] = useState<ScoreStats | null>(null);
+  const [isQueueing, setIsQueueing] = useState(false);
 
-  const CategoryIcon = () => {
-    if (title === 'Data model') {
-      return <IconHierarchy color={color} size={'20px'} />;
+  const loadStats = useCallback(async () => {
+    try {
+      setStats(await new RestApiClient().get<ScoreStats>('/s/stats'));
+    } catch {
+      await enqueueSnackbar({ message: 'Could not load scoring stats', variant: 'error' });
     }
-    if (title === 'Logic') {
-      return <IconSettingsAutomation color={color} size={'20px'} />;
-    }
-    if (title === 'Layout') {
-      return <IconLayout color={color} size={'20px'} />;
+  }, []);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
+
+  const pending = stats
+    ? stats.person.unscored + stats.person.failed + stats.opportunity.unscored + stats.opportunity.failed
+    : 0;
+
+  const scoreUnscored = async () => {
+    setIsQueueing(true);
+    try {
+      const { queued } = await new RestApiClient().post<{ queued: BackfillResult }>(
+        '/s/backfill',
+      );
+      await enqueueSnackbar({
+        message: `Queued ${queued.total} record(s), skipped ${queued.skipped} with nothing to score`,
+        variant: 'success',
+      });
+      await loadStats();
+    } catch {
+      await enqueueSnackbar({ message: 'Could not queue records', variant: 'error' });
+    } finally {
+      setIsQueueing(false);
     }
   };
 
@@ -108,172 +123,49 @@ const CategoryCard = ({
       style={{
         display: 'flex',
         flexDirection: 'column',
-        border: `1px solid ${color}80`,
-        borderRadius: '12px',
-        overflow: 'hidden',
-        width: '240px',
-        background: '#FFFFFF',
-        transform: `rotate(${rotation})`,
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)',
+        gap: theme.spacing[6],
+        padding: theme.spacing[8],
+        maxWidth: '720px',
+        margin: '0 auto',
+        fontFamily: theme.font.family,
       }}
     >
-      <div
-        style={{
-          padding: '16px 20px',
-          background: `${color}22`,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-        }}
-      >
-        <CategoryIcon />
-        <span
-          style={{
-            fontSize: '16px',
-            fontWeight: 600,
-            color: color,
-          }}
+      <div style={{ display: 'flex', alignItems: 'center', gap: theme.spacing[3] }}>
+        <img src={getPublicAssetUrl('logo.svg')} alt="" width={48} height={48} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: theme.spacing[1] }}>
+          <span
+            style={{
+              fontSize: theme.font.size.xl,
+              fontWeight: theme.font.weight.semiBold,
+              color: theme.font.color.primary,
+            }}
+          >
+            {APP_DISPLAY_NAME}
+          </span>
+          <span style={{ fontSize: theme.font.size.sm, color: theme.font.color.tertiary }}>
+            New and edited people and opportunities are scored automatically. Queued
+            records are scored every minute, 20 at a time.
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[4] }}>
+        <StatsCard title="People" counts={stats?.person} />
+        <StatsCard title="Opportunities" counts={stats?.opportunity} />
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: theme.spacing[2] }}>
+        <MainButton
+          startIcon={<IconSparkles size={16} />}
+          loading={isQueueing}
+          disabled={isQueueing || pending === 0}
+          onClick={scoreUnscored}
         >
-          {title}
-        </span>
-      </div>
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '8px',
-          gap: '4px',
-        }}
-      >
-        {items.map((item) => {
-          const isHovered = hoveredItem === item.label;
-
-          return (
-            <a
-              key={item.label}
-              href={item.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              onMouseEnter={() => setHoveredItem(item.label)}
-              onMouseLeave={() => setHoveredItem(null)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                textDecoration: 'none',
-                cursor: 'pointer',
-                padding: '10px 12px',
-                borderRadius: '8px',
-                background: isHovered ? '#0000000A' : 'transparent',
-                transition: 'background 0.15s',
-              }}
-            >
-              <IconBox color={color} size={'20px'} />
-              <span
-                style={{
-                  fontSize: '13px',
-                  fontWeight: 300,
-                  color: '#333',
-                  letterSpacing: '0.5px',
-                  flex: 1,
-                }}
-              >
-                {item.label}
-              </span>
-              {isHovered && <ArrowUpRight />}
-            </a>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
-
-const MainPage = () => {
-  return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: '100%',
-        fontFamily:
-          'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        gap: '8px',
-        padding: '40px',
-      }}
-    >
-      <Avatar name={APP_DISPLAY_NAME} colorSeed={APP_DISPLAY_NAME} size="xl" />
-      <span
-        style={{
-          fontSize: '24px',
-          fontWeight: 600,
-          color: '#333',
-          marginTop: '8px',
-        }}
-      >
-        {APP_DISPLAY_NAME}
-      </span>
-      <span
-        style={{
-          fontSize: '13px',
-          color: '#888',
-          textAlign: 'center',
-          lineHeight: '1.5',
-        }}
-      >
-        Was installed successfully.
-        <br />
-        You can now add content to your app.
-      </span>
-      <a
-        href="/settings/applications#installed"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          marginTop: '16px',
-          fontSize: '13px',
-          color: '#333',
-          textDecoration: 'none',
-          padding: '8px 16px',
-          borderRadius: '8px',
-          border: '1px solid #e0e0e0',
-          background: '#fafafa',
-          transition: 'background 0.15s, border-color 0.15s',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = '#f0f0f0';
-          e.currentTarget.style.borderColor = '#ccc';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = '#fafafa';
-          e.currentTarget.style.borderColor = '#e0e0e0';
-        }}
-      >
-        Open app settings
-        <ArrowUpRight color="#333" />
-      </a>
-      <div
-        style={{
-          display: 'flex',
-          gap: '16px',
-          marginTop: '32px',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
-          alignItems: 'flex-start',
-        }}
-      >
-        {CATEGORIES.map((category) => (
-          <CategoryCard
-            key={category.title}
-            title={category.title}
-            color={category.color}
-            items={category.items}
-            rotation={category.rotation}
-          />
-        ))}
+          Score unscored and failed records
+        </MainButton>
+        <LightButton startIcon={<IconRefresh size={16} />} onClick={loadStats}>
+          Refresh
+        </LightButton>
       </div>
     </div>
   );
@@ -282,6 +174,6 @@ const MainPage = () => {
 export default defineFrontComponent({
   universalIdentifier: MAIN_PAGE_FRONT_COMPONENT_UNIVERSAL_IDENTIFIER,
   name: APP_DISPLAY_NAME,
-  description: `${APP_DISPLAY_NAME} front component displaying the app logo and name`,
+  description: `${APP_DISPLAY_NAME} scoring status per object, with a button to score existing records`,
   component: MainPage,
 });

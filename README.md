@@ -18,7 +18,9 @@ Published to npm as [`lead-scoring-agent`](https://www.npmjs.com/package/lead-sc
 
 **Requires AI credits.** Scoring calls your workspace's default AI model — one call per scored record, metered by Twenty AI credits. With no credits available, records are marked queued and score automatically once credits return.
 
-**What it installs:** `leadScore` / `leadScoreSummary` / `leadScoredAt` / `leadScoreStatus` fields on People and Opportunities, the lead-scorer AI agent, the event-driven + cron scoring functions (including a backfill for pre-existing records), and default views sorted by score.
+**What it installs:** `leadScore` / `leadScoreSummary` / `leadScoredAt` / `leadScoreStatus` fields on People and Opportunities, the lead-scorer AI agent, the event-driven + cron scoring functions, an app page with scoring status, and default views sorted by score.
+
+**After install:** existing People and Opportunities are queued for scoring automatically, and the cron scores them 20 per object per minute. Records with nothing to score (a person without job title or company, an opportunity without amount or stage) are marked **Skipped** and use no credits; they score as soon as one of those fields is filled in. Upgrades repeat this step, so records missed while the app was out of date are picked up too. The **Lead Scoring Agent** page in the sidebar shows counts per status and has a **Score unscored and failed records** button for a manual re-run.
 
 ## Development
 

@@ -93,3 +93,9 @@ export const OPPORTUNITY_LEADS_VIEW_FIELD_LEAD_SCORE_STATUS_UNIVERSAL_IDENTIFIER
 // Backfill logic function (TCA-12)
 export const BACKFILL_FUNCTION_UNIVERSAL_IDENTIFIER =
   '4e419acc-e5b1-4346-a4c6-7262851fc507';
+
+// Post-install backfill + main-page stats route (TCA-16)
+export const POST_INSTALL_FUNCTION_UNIVERSAL_IDENTIFIER =
+  'abf10e3e-7ec9-48e7-9dad-6ed9a4c615e4';
+export const SCORE_STATS_FUNCTION_UNIVERSAL_IDENTIFIER =
+  'b55fb557-8267-4211-967b-0a338c9fffe3';
