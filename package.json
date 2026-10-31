@@ -1,6 +1,6 @@
 {
   "name": "lead-scoring-agent",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "license": "MIT",
   "description": "AI lead scoring & enrichment agent for Twenty CRM — auto-scores People and Opportunities 0-100 with reasoning, on create/update and via backfill.",
   "author": "Avinash Sangle (https://github.com/avisangle)",
