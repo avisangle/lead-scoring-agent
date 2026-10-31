@@ -21,7 +21,7 @@ import {
 
 const IMPORT_SOURCE = 'IMPORT';
 
-type RecordAfter = {
+export type RecordAfter = {
   jobTitle?: string | null;
   companyId?: string | null;
   amount?: { amountMicros?: string | number | null } | number | null;
@@ -29,7 +29,8 @@ type RecordAfter = {
   createdBy?: { source?: string | null } | null;
 };
 
-const hasScoringSignal = (
+// Shared with the backfill so both paths skip the same records.
+export const hasScoringSignal = (
   objectType: ScoreObjectType,
   after: RecordAfter,
 ): boolean => {

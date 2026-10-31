@@ -19,95 +19,149 @@
  * broken record is retried only on an explicit backfill, not in a tight loop.
  * A bounded retry-count field remains the proper long-term guard (TCA-10).
  *
+ * Records with no scoring signal are marked SKIPPED (same rule as the live
+ * trigger) so the cron never spends AI credits on an empty record.
+ *
  * Idempotent: re-running re-queues only records that still need scoring, never
  * ones already QUEUED / SCORED / SKIPPED.
  */
 import { CoreApiClient } from 'twenty-client-sdk/core';
 
+import { hasScoringSignal, type RecordAfter } from 'src/lib/score-on-event';
 import {
+  type LeadScoreStatus,
   type ScoreObjectType,
   setLeadScoreStatus,
 } from 'src/lib/score-record';
 
 const BACKFILL_BATCH_LIMIT = 50;
+// 40 rounds x 50 = up to 2,000 records per object in one post-install run.
+const DEFAULT_MAX_ROUNDS = 40;
 
-const fetchUnscoredIds = async (
+const NEEDS_SCORING_FILTER = {
+  or: [
+    { leadScoreStatus: { is: 'NULL' as const } },
+    { leadScoreStatus: { eq: 'FAILED' as const } },
+  ],
+};
+
+type Candidate = RecordAfter & { id?: unknown };
+
+const toCandidates = (
+  edges: ({ node?: Candidate | null } | null)[] | null | undefined,
+): (Candidate & { id: string })[] =>
+  (edges ?? [])
+    .map((edge) => edge?.node)
+    .filter(
+      (node): node is Candidate & { id: string } =>
+        typeof node?.id === 'string',
+    );
+
+const fetchUnscored = async (
   objectType: ScoreObjectType,
-): Promise<string[]> => {
+): Promise<(Candidate & { id: string })[]> => {
   const client = new CoreApiClient();
 
   if (objectType === 'person') {
     const { people } = await client.query({
       people: {
-        __args: {
-          first: BACKFILL_BATCH_LIMIT,
-          filter: {
-            or: [
-              { leadScoreStatus: { is: 'NULL' } },
-              { leadScoreStatus: { eq: 'FAILED' } },
-            ],
-          },
-        },
-        edges: { node: { id: true } },
+        __args: { first: BACKFILL_BATCH_LIMIT, filter: NEEDS_SCORING_FILTER },
+        edges: { node: { id: true, jobTitle: true, companyId: true } },
       },
     });
 
-    return (people?.edges ?? [])
-      .map((edge: { node?: { id?: unknown } } | null) => edge?.node?.id)
-      .filter((id: unknown): id is string => typeof id === 'string');
+    return toCandidates(people?.edges);
   }
 
   const { opportunities } = await client.query({
     opportunities: {
-      __args: {
-        first: BACKFILL_BATCH_LIMIT,
-        filter: {
-          or: [
-            { leadScoreStatus: { is: 'NULL' } },
-            { leadScoreStatus: { eq: 'FAILED' } },
-          ],
-        },
+      __args: { first: BACKFILL_BATCH_LIMIT, filter: NEEDS_SCORING_FILTER },
+      edges: {
+        node: { id: true, stage: true, amount: { amountMicros: true } },
       },
-      edges: { node: { id: true } },
     },
   });
 
-  return (opportunities?.edges ?? [])
-    .map((edge: { node?: { id?: unknown } } | null) => edge?.node?.id)
-    .filter((id: unknown): id is string => typeof id === 'string');
+  return toCandidates(opportunities?.edges);
 };
 
-const enqueueAll = async (
+/** Writes QUEUED or SKIPPED per record; returns how many were queued vs skipped. */
+const triage = async (
   objectType: ScoreObjectType,
-  ids: string[],
-): Promise<number> => {
-  for (const recordId of ids) {
-    await setLeadScoreStatus(objectType, recordId, 'QUEUED');
+  candidates: (Candidate & { id: string })[],
+): Promise<{ queued: number; skipped: number }> => {
+  let queued = 0;
+
+  for (const candidate of candidates) {
+    const status: LeadScoreStatus = hasScoringSignal(objectType, candidate)
+      ? 'QUEUED'
+      : 'SKIPPED';
+
+    await setLeadScoreStatus(objectType, candidate.id, status);
+
+    if (status === 'QUEUED') {
+      queued += 1;
+    }
   }
 
-  return ids.length;
+  return { queued, skipped: candidates.length - queued };
 };
 
 export type BackfillResult = {
+  /** People queued for scoring. */
   people: number;
+  /** Opportunities queued for scoring. */
   opportunities: number;
+  /** Records of either kind marked SKIPPED for lack of a signal. */
+  skipped: number;
+  /** people + opportunities (queued only). */
   total: number;
 };
 
 /**
- * Enqueue every unscored person + opportunity for scoring. Returns how many of
- * each were queued (they will be scored on the next `drainQueue` cron run).
+ * One batch: triage up to 50 unscored people and 50 unscored opportunities.
+ * Queued records are scored on the next `drainQueue` cron run.
  */
 export const backfillUnscored = async (): Promise<BackfillResult> => {
-  const [personIds, opportunityIds] = await Promise.all([
-    fetchUnscoredIds('person'),
-    fetchUnscoredIds('opportunity'),
+  const [personCandidates, opportunityCandidates] = await Promise.all([
+    fetchUnscored('person'),
+    fetchUnscored('opportunity'),
   ]);
 
-  const [people, opportunities] = await Promise.all([
-    enqueueAll('person', personIds),
-    enqueueAll('opportunity', opportunityIds),
+  const [personResult, opportunityResult] = await Promise.all([
+    triage('person', personCandidates),
+    triage('opportunity', opportunityCandidates),
   ]);
 
-  return { people, opportunities, total: people + opportunities };
+  return {
+    people: personResult.queued,
+    opportunities: opportunityResult.queued,
+    skipped: personResult.skipped + opportunityResult.skipped,
+    total: personResult.queued + opportunityResult.queued,
+  };
+};
+
+/**
+ * Repeats `backfillUnscored` until a round finds nothing (each round's writes
+ * take its records out of the filter), capped at `maxRounds`.
+ */
+export const backfillAll = async (
+  maxRounds = DEFAULT_MAX_ROUNDS,
+): Promise<BackfillResult> => {
+  const sum: BackfillResult = { people: 0, opportunities: 0, skipped: 0, total: 0 };
+
+  for (let round = 0; round < maxRounds; round += 1) {
+    const result = await backfillUnscored();
+
+    sum.people += result.people;
+    sum.opportunities += result.opportunities;
+    sum.skipped += result.skipped;
+    sum.total += result.total;
+
+    if (result.total + result.skipped === 0) {
+      break;
+    }
+  }
+
+  return sum;
 };

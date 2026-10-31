@@ -7,7 +7,7 @@ export default defineLogicFunction({
   universalIdentifier: BACKFILL_FUNCTION_UNIVERSAL_IDENTIFIER,
   name: 'backfill',
   description:
-    'Enqueue pre-existing unscored people + opportunities so the drainQueue cron scores them. Idempotent.',
+    'Enqueue unscored or failed people + opportunities for the drainQueue cron; marks no-signal records SKIPPED. Idempotent.',
   timeoutSeconds: 60,
   httpRouteTriggerSettings: {
     path: '/backfill',
