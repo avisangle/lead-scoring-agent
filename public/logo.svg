@@ -1,11 +1,14 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
   <style>
-    .arc { animation: arc 8s ease-in-out infinite alternate; }
-    @keyframes arc { from { stroke-dashoffset: 41; } to { stroke-dashoffset: 30; } }
-    .bar { transform-box: fill-box; transform-origin: 50% 100%; animation: rise 8s ease-in-out infinite alternate; }
-    .b2 { animation-delay: -1.2s; }
-    .b3 { animation-delay: -2.4s; }
-    @keyframes rise { from { transform: scaleY(0.88); } to { transform: scaleY(1); } }
+    .arc { animation: arc 5s ease-in-out infinite alternate; }
+    @keyframes arc { from { stroke-dashoffset: 138.7; } to { stroke-dashoffset: 37.7; } }
+    .bar { animation: glow 5s ease-in-out infinite backwards; }
+    .b2 { animation-delay: 0.45s; }
+    .b3 { animation-delay: 0.9s; }
+    @keyframes glow {
+      0%, 34%, 100% { fill: #FFFFFF; fill-opacity: 0.45; }
+      14% { fill: #A7F3D0; fill-opacity: 1; }
+    }
     @media (prefers-reduced-motion: reduce) { .arc, .bar { animation: none; } }
   </style>
   <defs>
@@ -21,7 +24,7 @@
   <rect width="80" height="80" rx="18" fill="url(#bg)"/>
   <circle cx="40" cy="40" r="24" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="6"/>
   <circle class="arc" cx="40" cy="40" r="24" stroke="url(#ring)" stroke-width="6" stroke-linecap="round"
-    stroke-dasharray="150.8" stroke-dashoffset="34" transform="rotate(-90 40 40)"/>
+    stroke-dasharray="150.8" stroke-dashoffset="37.7" transform="rotate(-90 40 40)"/>
   <rect class="bar b1" x="30" y="42" width="5.5" height="8" rx="1.75" fill="#FFFFFF" fill-opacity="0.55"/>
   <rect class="bar b2" x="37.25" y="37.5" width="5.5" height="12.5" rx="1.75" fill="#FFFFFF" fill-opacity="0.78"/>
   <rect class="bar b3" x="44.5" y="32" width="5.5" height="18" rx="1.75" fill="#FFFFFF"/>
