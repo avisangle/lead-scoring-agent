@@ -2,6 +2,11 @@
 
 All notable changes to this application are documented in this file.
 
+## Unreleased
+
+- Marketplace listing: original animated logo (CSS keyframes, respects reduced motion), category
+  Sales, support email, website and issue tracker links.
+
 ## 0.2.1
 
 - Fix: install failed on Twenty Cloud plans without custom roles ("Custom roles require the
