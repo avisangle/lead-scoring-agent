@@ -9,11 +9,12 @@ drained by a cron sweeper (~1 min).
 
 ## Install
 
-Published to npm and installable into any Twenty CRM workspace.
+Published to npm as [`lead-scoring-agent`](https://www.npmjs.com/package/lead-scoring-agent). Requires a Twenty server **2.49 or later**.
 
-- **Twenty UI:** Settings → Applications → find **Lead Scoring Agent** → Install.
-  Self-hosted instances: run `yarn twenty dev:catalog-sync` first so npm-published apps appear in the marketplace.
-- **CLI / details:** see the Twenty apps guide at docs.twenty.com/developers/extend/apps.
+- **Twenty UI:** Settings → Applications → Marketplace. The app has not been through Twenty's marketplace review yet, so open the filter and turn on **Show unlisted apps**, then find **Lead Scoring Agent** → Install. Twenty shows a "not reviewed" warning for unlisted apps.
+  Self-hosted servers import npm apps into their catalog automatically every hour.
+- **CLI:** `npx twenty@latest auth login --url https://<your-workspace>.twenty.com`, then
+  `npx twenty@latest app install --universal-identifier 94f2e86e-62e5-4695-b4e8-50059cd7db30`.
 
 **Requires AI credits.** Scoring calls your workspace's default AI model — one call per scored record, metered by Twenty AI credits. With no credits available, records are marked queued and score automatically once credits return.
 
@@ -21,15 +22,15 @@ Published to npm and installable into any Twenty CRM workspace.
 
 ## Development
 
-Requires **Node ≥24.5** (`.nvmrc` pins 24.5.0) and **Yarn 4** (`packageManager: yarn@4.13.0`, via corepack). A Node version manager (fnm/nvm) auto-switches from `.nvmrc`.
+Requires **Node 24.5+ or 26.5+** (`.nvmrc` pins 24.5.0), **Yarn 4** (via corepack) and the standalone Twenty CLI (`npm install -g twenty`). See [SETUP.md](SETUP.md).
 
 ```bash
-corepack yarn twenty dev --once   # build + sync the app to your workspace once
-corepack yarn twenty dev          # watch mode
-corepack yarn test:unit           # unit tests
+twenty app apply --create   # first time: register, install and sync the app
+twenty app dev              # watch mode
+corepack yarn test:unit     # unit tests
 corepack yarn typecheck
 ```
 
 ## License
 
-MIT (app code). The Twenty SDK is AGPL-3.0 and bundles into the shipped artifact.
+MIT. The Twenty SDK packages it bundles are MIT too.

@@ -1,6 +1,6 @@
 {
   "name": "lead-scoring-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "description": "AI lead scoring & enrichment agent for Twenty CRM — auto-scores People and Opportunities 0-100 with reasoning, on create/update and via backfill.",
   "author": "Avinash Sangle (https://github.com/avisangle)",
@@ -11,11 +11,18 @@
   "homepage": "https://github.com/avisangle/lead-scoring-agent#readme",
   "bugs": "https://github.com/avisangle/lead-scoring-agent/issues",
   "engines": {
-    "node": "^24.5.0",
+    "node": "^24.5.0 || ^26.5.1",
     "npm": "please-use-yarn",
-    "yarn": ">=4.0.2"
+    "yarn": ">=4.0.2",
+    "twenty": ">=2.49.0"
   },
-  "keywords": ["twenty-app", "twenty", "crm", "lead-scoring", "ai-agent"],
+  "keywords": [
+    "twenty-app",
+    "twenty",
+    "crm",
+    "lead-scoring",
+    "ai-agent"
+  ],
   "packageManager": "yarn@4.13.0",
   "scripts": {
     "twenty": "twenty",
@@ -33,11 +40,11 @@
     "oxlint": "^0.16.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "twenty-client-sdk": "2.22.0",
-    "twenty-sdk": "2.22.0",
-    "twenty-ui": "1.0.0-alpha.1",
+    "twenty-client-sdk": "2.54.3",
+    "twenty-sdk": "2.54.3",
+    "twenty-ui": "2.54.3",
     "typescript": "^5.9.3",
     "vite-tsconfig-paths": "^4.2.1",
-    "vitest": "^4.0.0"
+    "vitest": "^4.1.12"
   }
 }

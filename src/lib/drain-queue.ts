@@ -32,8 +32,8 @@ const fetchQueuedIds = async (
     });
 
     return (people?.edges ?? [])
-      .map((edge) => edge?.node?.id)
-      .filter((id): id is string => typeof id === 'string');
+      .map((edge: { node?: { id?: unknown } } | null) => edge?.node?.id)
+      .filter((id: unknown): id is string => typeof id === 'string');
   }
 
   const { opportunities } = await client.query({
@@ -47,8 +47,8 @@ const fetchQueuedIds = async (
   });
 
   return (opportunities?.edges ?? [])
-    .map((edge) => edge?.node?.id)
-    .filter((id): id is string => typeof id === 'string');
+    .map((edge: { node?: { id?: unknown } } | null) => edge?.node?.id)
+    .filter((id: unknown): id is string => typeof id === 'string');
 };
 
 export const drainQueue = async (): Promise<void> => {

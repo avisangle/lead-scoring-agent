@@ -28,10 +28,17 @@ export type EnrichmentInput = {
 
 const RECENT_ACTIVITY_LIMIT = 10;
 
+// Event name lives on the activity-type snapshot (JSON), e.g. `noteLinked`.
 type TimelineActivitiesResult = {
   edges?:
-    | ({ node?: { name?: string | null } | null } | null)[]
+    | ({ node?: { timelineActivityTypeSnapshot?: unknown } | null } | null)[]
     | null;
+};
+
+const snapshotName = (snapshot: unknown): string | undefined => {
+  const name = (snapshot as { name?: unknown } | null | undefined)?.name;
+
+  return typeof name === 'string' ? name : undefined;
 };
 
 const nonEmpty = (value: string | null | undefined): value is string =>
@@ -49,7 +56,7 @@ const recentActivity = (
   timelineActivities: TimelineActivitiesResult | null | undefined,
 ): string[] | undefined => {
   const names = (timelineActivities?.edges ?? [])
-    .map((edge) => edge?.node?.name)
+    .map((edge) => snapshotName(edge?.node?.timelineActivityTypeSnapshot))
     .filter(nonEmpty);
 
   return names.length > 0 ? names : undefined;
@@ -93,7 +100,12 @@ const enrichPerson = async (
           orderBy: [{ createdAt: 'DescNullsLast' }],
         },
         edges: {
-          node: { id: true, name: true, happensAt: true, createdAt: true },
+          node: {
+            id: true,
+            timelineActivityTypeSnapshot: true,
+            happensAt: true,
+            createdAt: true,
+          },
         },
       },
     },
@@ -140,7 +152,12 @@ const enrichOpportunity = async (
           orderBy: [{ createdAt: 'DescNullsLast' }],
         },
         edges: {
-          node: { id: true, name: true, happensAt: true, createdAt: true },
+          node: {
+            id: true,
+            timelineActivityTypeSnapshot: true,
+            happensAt: true,
+            createdAt: true,
+          },
         },
       },
     },

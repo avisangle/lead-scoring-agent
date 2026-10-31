@@ -38,6 +38,9 @@ jobs:
           node-version-file: '.nvmrc'
           cache: yarn
 
+      - name: Install Twenty CLI
+        run: npm install -g twenty@2.54.3
+
       - name: Install dependencies
         run: yarn install --immutable
 
