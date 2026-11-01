@@ -2,6 +2,10 @@
 
 All notable changes to this application are documented in this file.
 
+## Unreleased
+
+- Marketplace listing: author set to ReportStack.
+
 ## 0.3.0
 
 - Existing records are scored after install: a post-install hook (also run on upgrades) queues every

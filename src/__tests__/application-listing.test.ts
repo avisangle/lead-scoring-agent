@@ -7,6 +7,7 @@ const { config } = application;
 
 describe('marketplace listing metadata', () => {
   it('declares the support and listing fields', () => {
+    expect(config.author).toBe('ReportStack');
     expect(config.category).toBe('Sales');
     expect(config.emailSupport).toBe('support@reportstack.app');
     expect(config.websiteUrl).toBe(
