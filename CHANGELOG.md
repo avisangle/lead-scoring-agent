@@ -2,7 +2,7 @@
 
 All notable changes to this application are documented in this file.
 
-## Unreleased
+## 0.4.0
 
 - Marketplace listing: author set to ReportStack.
 - Least privilege: the app's function role now reads only People, Companies, Opportunities and
