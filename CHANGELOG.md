@@ -7,6 +7,8 @@ All notable changes to this application are documented in this file.
 - Marketplace listing: author set to ReportStack.
 - Least privilege: the app's function role now reads only People, Companies, Opportunities and
   timeline activity, updates only People and Opportunities, and can no longer delete anything.
+- Marketplace listing: four gallery images (1600x1000) and a README covering privacy (what is sent,
+  where, what is kept, how to delete it), pricing and support.
 
 ## 0.3.0
 

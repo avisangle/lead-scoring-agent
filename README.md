@@ -1,38 +1,75 @@
-# lead-scoring-agent
+# Lead Scoring Agent
 
-A Twenty CRM app (SDK) that automatically scores new/updated `person` and `opportunity`
-records 0–100 with a short reasoning summary, so a sales rep can work a leads list sorted by
-score. Single manual creates score inline (seconds); bulk imports route to a throttled queue
-drained by a cron sweeper (~1 min).
+Scores every person and opportunity in your Twenty workspace from 0 to 100, with a one-to-three
+sentence reason, so your team works the most promising leads first.
 
-**Status:** v1 functional — auto-scores on create/update, backfills existing records, and ships sorted "by Lead Score" views.
+## What you get
+
+- **Lead Score**, **Lead Score Summary**, **Lead Scored At** and **Lead Score Status** fields on
+  People and Opportunities.
+- **People by Lead Score** and **Opportunities by Lead Score** views, highest score first.
+- A **Lead Scoring Agent** page in the sidebar with counts per status and a button to score
+  anything not yet scored.
+
+## How it works
+
+- A new or edited record is scored within seconds. People are re-scored when their job title,
+  company or email changes; opportunities when amount, stage or close date changes.
+- Imports and records that existed before install go to a queue that is scored 20 per object
+  per minute. Installing or upgrading the app queues existing records automatically.
+- The score comes from your workspace's default AI model, judging fit (seniority, title, company),
+  intent (stage, amount, recent activity) and how complete the record is. It uses only what is
+  in the record and does not look anything up on the web.
+- A record with nothing to judge (a person without job title or company, an opportunity without
+  amount or stage) is marked **Skipped** and costs nothing. It is scored once one of those
+  fields is filled in.
 
 ## Install
 
-Published to npm as [`lead-scoring-agent`](https://www.npmjs.com/package/lead-scoring-agent). Requires a Twenty server **2.49 or later**.
+Requires a Twenty server **2.49 or later**.
 
-- **Twenty UI:** Settings → Applications → Marketplace. The app has not been through Twenty's marketplace review yet, so open the filter and turn on **Show unlisted apps**, then find **Lead Scoring Agent** → Install. Twenty shows a "not reviewed" warning for unlisted apps.
-  Self-hosted servers import npm apps into their catalog automatically every hour.
+- **Twenty UI:** Settings → Applications → Marketplace → **Lead Scoring Agent** → Install. If it
+  isn't shown, open the filter and turn on **Show unlisted apps**.
 - **CLI:** `npx twenty@latest auth login --url https://<your-workspace>.twenty.com`, then
   `npx twenty@latest app install --universal-identifier 94f2e86e-62e5-4695-b4e8-50059cd7db30`.
 
-**Requires AI credits.** Scoring calls your workspace's default AI model — one call per scored record, metered by Twenty AI credits. With no credits available, records are marked queued and score automatically once credits return.
+There is nothing to configure. Make sure your workspace has a default AI model (Settings → AI).
 
-**What it installs:** `leadScore` / `leadScoreSummary` / `leadScoredAt` / `leadScoreStatus` fields on People and Opportunities, the lead-scorer AI agent, the event-driven + cron scoring functions, an app page with scoring status, and default views sorted by score.
+## Privacy
 
-**After install:** existing People and Opportunities are queued for scoring automatically, and the cron scores them 20 per object per minute. Records with nothing to score (a person without job title or company, an opportunity without amount or stage) are marked **Skipped** and use no credits; they score as soon as one of those fields is filled in. Upgrades repeat this step, so records missed while the app was out of date are picked up too. The **Lead Scoring Agent** page in the sidebar shows counts per status and has a **Score unscored and failed records** button for a manual re-run.
+**What leaves the workspace.** Only the scoring prompt, sent through Twenty's AI service to your
+workspace's default model:
 
-## Development
+- People: name, job title, primary email, LinkedIn URL, company name, company domain and company
+  city.
+- Opportunities: name, amount, stage, close date, company name and company domain.
+- Both: the event names of the 10 most recent timeline entries (for example `noteLinked`), never
+  their content. Email bodies, notes and attachments are not sent.
 
-Requires **Node 24.5+ or 26.5+** (`.nvmrc` pins 24.5.0), **Yarn 4** (via corepack) and the standalone Twenty CLI (`npm install -g twenty`). See [SETUP.md](SETUP.md).
+**Where it goes.** On Twenty Cloud, models run through Twenty's own AI providers, covered by
+[Twenty's privacy policy](https://twenty.com/privacy-policy). On a self-hosted server, they go
+to the provider your administrator configured. The app holds no API keys and calls no other
+service.
 
-```bash
-twenty app apply --create   # first time: register, install and sync the app
-twenty app dev              # watch mode
-corepack yarn test:unit     # unit tests
-corepack yarn typecheck
-```
+**What is kept, and for how long.** The score, summary, time and status are stored on the record
+itself, inside your workspace. The app keeps no copy of the prompt or the answer anywhere else.
+A score stays until the record is re-scored or deleted.
 
-## License
+**Deleting it.** Deleting a record deletes its score. Uninstalling the app removes the four fields
+and all their values.
 
-MIT. The Twenty SDK packages it bundles are MIT too.
+**Permissions.** The app can read People, Companies, Opportunities and timeline activity, update
+People and Opportunities, and use AI. It cannot delete anything.
+
+## Pricing
+
+Free, and open source under the MIT license. Each scored record uses one AI call, billed to your
+workspace's Twenty AI credits (Cloud) or to your own AI provider account (self-hosted). Skipped
+records use none. If credits run out, records wait in the queue and are scored once credits
+return. No other paid service is needed.
+
+## Support
+
+- Email: [support@reportstack.app](mailto:support@reportstack.app)
+- Issues: [github.com/avisangle/lead-scoring-agent/issues](https://github.com/avisangle/lead-scoring-agent/issues)
+- Development setup: [SETUP.md](SETUP.md). Changes: [CHANGELOG.md](CHANGELOG.md).
