@@ -5,6 +5,8 @@ All notable changes to this application are documented in this file.
 ## Unreleased
 
 - Marketplace listing: author set to ReportStack.
+- Least privilege: the app's function role now reads only People, Companies, Opportunities and
+  timeline activity, updates only People and Opportunities, and can no longer delete anything.
 
 ## 0.3.0
 
