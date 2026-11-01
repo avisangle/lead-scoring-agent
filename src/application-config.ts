@@ -12,6 +12,7 @@ export default defineApplication({
   universalIdentifier: APPLICATION_UNIVERSAL_IDENTIFIER,
   displayName: APP_DISPLAY_NAME,
   description: APP_DESCRIPTION,
+  author: 'ReportStack',
   category: 'Sales',
   logo: 'public/logo.svg',
   websiteUrl: REPOSITORY_URL,
